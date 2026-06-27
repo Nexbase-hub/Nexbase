@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXBASE — DeFi on Base</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg:        #07050f;
+  --surface:   #0f0b1e;
+  --purple:    #7c3aed;
+  --purple-lt: #9d5ff5;
+  --purple-dim:#3b1a7a;
+  --lavender:  #c4b5fd;
+  --white:     #f0ebff;
+  --muted:     #7c6fa0;
+  --border:    rgba(124,58,237,0.18);
+  --card:      rgba(124,58,237,0.06);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* NOISE TEXTURE */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; opacity: 0.4;
+}
+
+/* GRID */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(124,58,237,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(124,58,237,0.07) 1px, transparent 1px);
+  background-size: 72px 72px;
+  pointer-events: none;
+  mask-image: radial-gradient(ellipse at center, black 20%, transparent 80%);
+}
+
+/* ORBS */
+.orb { position: fixed; border-radius: 50%; filter: blur(110px); pointer-events: none; z-index: 0; }
+.orb1 { width: 700px; height: 700px; background: rgba(109,40,217,0.2); top: -250px; right: -200px; }
+.orb2 { width: 500px; height: 500px; background: rgba(124,58,237,0.14); bottom: -150px; left: -150px; }
+.orb3 { width: 350px; height: 350px; background: rgba(167,110,255,0.1); top: 45%; left: 35%; }
+
+/* NAV */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 64px;
+  padding: 0 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(7,5,15,0.75);
+  backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 1.1rem; font-weight: 700; letter-spacing: 1px;
+  background: linear-gradient(135deg, #fff 30%, var(--lavender));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+.nav-center {
+  display: flex; align-items: center; gap: 4px;
+  list-style: none;
+}
+.nav-center a {
+  padding: 6px 14px; border-radius: 6px;
+  color: var(--muted); text-decoration: none;
+  font-size: 0.875rem; font-weight: 500;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-center a:hover { color: var(--white); background: rgba(124,58,237,0.1); }
+
+.nav-right { display: flex; align-items: center; gap: 12px; }
+
+.nav-icon {
+  width: 36px; height: 36px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); border: 1px solid var(--border);
+  text-decoration: none; transition: all 0.2s;
+  background: transparent;
+}
+.nav-icon:hover { color: var(--white); border-color: var(--purple); background: rgba(124,58,237,0.12); }
+.nav-icon svg { width: 16px; height: 16px; fill: currentColor; }
+
+.btn-launch {
+  padding: 8px 20px; border-radius: 8px;
+  font-size: 0.85rem; font-weight: 600;
+  background: var(--purple); color: #fff;
+  border: none; cursor: pointer; text-decoration: none;
+  transition: all 0.2s; letter-spacing: 0.2px;
+}
+.btn-launch:hover { background: var(--purple-lt); box-shadow: 0 0 28px rgba(124,58,237,0.45); }
+
+/* SECTIONS */
+section { position: relative; z-index: 1; }
+
+/* HERO */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 120px 24px 80px;
+  gap: 0;
+}
+
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 14px; border-radius: 99px;
+  border: 1px solid var(--border);
+  background: rgba(124,58,237,0.08);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem; color: var(--lavender);
+  letter-spacing: 2px; text-transform: uppercase;
+  margin-bottom: 32px;
+}
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #a855f7;
+  box-shadow: 0 0 8px #a855f7;
+  animation: blink 2s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+h1 {
+  font-size: clamp(2.6rem, 6.5vw, 5rem);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -2.5px;
+  margin-bottom: 24px;
+  max-width: 860px;
+}
+.text-purple {
+  background: linear-gradient(135deg, var(--purple-lt), var(--lavender));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+.hero-sub {
+  font-size: 1.05rem; color: var(--muted);
+  max-width: 520px; margin-bottom: 44px;
+  font-weight: 400; line-height: 1.75;
+}
+
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+
+.btn-primary {
+  padding: 13px 32px; border-radius: 9px;
+  font-size: 0.95rem; font-weight: 600;
+  background: var(--purple); color: #fff;
+  border: none; cursor: pointer; text-decoration: none;
+  transition: all 0.22s;
+}
+.btn-primary:hover { background: var(--purple-lt); box-shadow: 0 0 36px rgba(124,58,237,0.5); transform: translateY(-2px); }
+
+.btn-outline {
+  padding: 13px 32px; border-radius: 9px;
+  font-size: 0.95rem; font-weight: 600;
+  background: transparent; color: var(--white);
+  border: 1px solid var(--border); cursor: pointer; text-decoration: none;
+  transition: all 0.22s; backdrop-filter: blur(8px);
+}
+.btn-outline:hover { border-color: var(--purple); color: var(--lavender); }
+
+/* TICKER */
+.ticker-wrap {
+  overflow: hidden; width: 100%;
+  padding: 14px 0;
+  background: rgba(124,58,237,0.04);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  position: relative; z-index: 1;
+}
+.ticker-wrap::before, .ticker-wrap::after {
+  content: ''; position: absolute; top: 0; width: 120px; height: 100%; z-index: 2; pointer-events: none;
+}
+.ticker-wrap::before { left: 0; background: linear-gradient(90deg, var(--bg), transparent); }
+.ticker-wrap::after  { right: 0; background: linear-gradient(-90deg, var(--bg), transparent); }
+
+.ticker { display: flex; gap: 56px; width: max-content; animation: ticker 30s linear infinite; }
+@keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+.ticker-item { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.t-sym { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--muted); font-weight: 700; }
+.t-val { font-size: 0.82rem; font-weight: 600; color: var(--white); }
+.t-up  { font-size: 0.75rem; color: #86efac; }
+.t-dn  { font-size: 0.75rem; color: #f87171; }
+.t-div { width: 1px; height: 12px; background: var(--border); }
+
+/* STATS */
+.stats-wrap { position: relative; z-index: 1; }
+.stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  max-width: 1080px; margin: 0 auto; padding: 80px 48px;
+  gap: 1px; background: var(--border);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.stat { background: var(--bg); padding: 36px 32px; }
+.stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; font-weight: 500; }
+.stat-num { font-size: 2rem; font-weight: 700; font-family: 'Space Mono', monospace; letter-spacing: -1px; }
+.stat-change { font-size: 0.75rem; color: #86efac; margin-top: 6px; }
+
+/* SECTION WRAPPER */
+.section-inner { max-width: 1080px; margin: 0 auto; padding: 100px 48px; }
+.section-tag { font-family: 'Space Mono', monospace; font-size: 0.68rem; color: var(--purple-lt); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 14px; }
+.section-h2 { font-size: clamp(1.7rem, 3vw, 2.5rem); font-weight: 700; letter-spacing: -1px; margin-bottom: 56px; line-height: 1.15; }
+
+/* HOW IT WORKS */
+.steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.step { background: var(--bg); padding: 40px 32px; transition: background 0.25s; }
+.step:hover { background: var(--card); }
+.step-n { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--purple-lt); letter-spacing: 2px; margin-bottom: 28px; }
+.step h3 { font-size: 1rem; font-weight: 600; margin-bottom: 10px; letter-spacing: -0.3px; }
+.step p { color: var(--muted); font-size: 0.875rem; line-height: 1.7; }
+
+/* FEATURES */
+.feat-grid { display: grid; grid-template-columns: repeat(12,1fr); gap: 16px; }
+.feat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px; padding: 32px 28px;
+  transition: border-color 0.25s, transform 0.25s;
+}
+.feat-card:hover { border-color: rgba(124,58,237,0.45); transform: translateY(-3px); }
+.feat-card.span-8 { grid-column: span 8; }
+.feat-card.span-4 { grid-column: span 4; }
+.feat-card.span-6 { grid-column: span 6; }
+.feat-label {
+  font-family: 'Space Mono', monospace; font-size: 0.62rem;
+  color: var(--purple-lt); letter-spacing: 2px; text-transform: uppercase;
+  margin-bottom: 20px; display: block;
+}
+.feat-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 10px; letter-spacing: -0.2px; }
+.feat-card p { color: var(--muted); font-size: 0.86rem; line-height: 1.7; }
+.feat-badge {
+  display: inline-block; margin-top: 18px;
+  padding: 3px 10px; border-radius: 4px;
+  background: rgba(124,58,237,0.12); border: 1px solid var(--border);
+  font-family: 'Space Mono', monospace; font-size: 0.62rem; color: var(--lavender);
+  letter-spacing: 1px;
+}
+
+/* MARKET CHART */
+.chart-wrap {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 32px;
+}
+.chart-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; flex-wrap: wrap; gap: 16px; }
+.chart-pair { font-family: 'Space Mono', monospace; font-size: 0.75rem; color: var(--muted); margin-bottom: 6px; }
+.chart-price { font-family: 'Space Mono', monospace; font-size: 1.9rem; font-weight: 700; }
+.chart-chg { font-size: 0.8rem; margin-left: 10px; }
+.chart-tabs { display: flex; gap: 4px; }
+.tab {
+  padding: 5px 14px; border-radius: 6px; font-size: 0.78rem;
+  cursor: pointer; border: 1px solid var(--border);
+  background: transparent; color: var(--muted);
+  font-family: 'Space Mono', monospace; transition: all 0.18s;
+}
+.tab.active { background: rgba(124,58,237,0.2); border-color: var(--purple); color: var(--white); }
+.tab:hover:not(.active) { color: var(--white); }
+canvas#chart { width: 100%; height: 180px; display: block; }
+
+/* CTA */
+.cta-box {
+  border: 1px solid var(--border);
+  border-radius: 20px; padding: 72px 64px;
+  text-align: center;
+  background: radial-gradient(ellipse at top, rgba(124,58,237,0.12) 0%, transparent 70%);
+  position: relative; overflow: hidden;
+}
+.cta-box::before {
+  content: '';
+  position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+  width: 200px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--purple), transparent);
+}
+.cta-box h2 { font-size: clamp(1.6rem, 3vw, 2.4rem); font-weight: 700; letter-spacing: -1px; margin-bottom: 14px; }
+.cta-box p { color: var(--muted); margin-bottom: 36px; font-size: 0.95rem; }
+.email-row { display: flex; gap: 10px; max-width: 420px; margin: 0 auto; flex-wrap: wrap; }
+.email-inp {
+  flex: 1; min-width: 180px;
+  padding: 12px 18px; border-radius: 8px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--white); font-family: 'Inter', sans-serif; font-size: 0.88rem;
+  outline: none; transition: border-color 0.2s;
+}
+.email-inp::placeholder { color: var(--muted); }
+.email-inp:focus { border-color: var(--purple); }
+.btn-submit {
+  padding: 12px 24px; border-radius: 8px;
+  font-size: 0.88rem; font-weight: 600;
+  background: var(--purple); color: #fff;
+  border: none; cursor: pointer; transition: all 0.22s; white-space: nowrap;
+}
+.btn-submit:hover { background: var(--purple-lt); }
+.success-msg { margin-top: 14px; font-size: 0.82rem; color: #86efac; display: none; }
+
+/* FOOTER */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 36px 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 20px;
+  position: relative; z-index: 1;
+  max-width: 100%;
+}
+.footer-logo { font-family: 'Space Mono', monospace; font-size: 0.95rem; font-weight: 700; color: var(--lavender); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { color: var(--muted); font-size: 0.82rem; text-decoration: none; transition: color 0.2s; }
+.footer-links a:hover { color: var(--white); }
+.footer-copy { color: var(--muted); font-size: 0.75rem; }
+
+/* REVEAL */
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.65s cubic-bezier(0.16,1,0.3,1), transform 0.65s cubic-bezier(0.16,1,0.3,1); }
+.reveal.visible { opacity: 1; transform: none; }
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  nav { padding: 0 20px; }
+  .nav-center { display: none; }
+  .stats { grid-template-columns: repeat(2,1fr); }
+  .section-inner { padding: 70px 20px; }
+  .steps { grid-template-columns: 1fr; }
+  .feat-card.span-8, .feat-card.span-4, .feat-card.span-6 { grid-column: span 12; }
+  .cta-box { padding: 48px 24px; }
+  footer { padding: 28px 20px; flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">NEXBASE</div>
+
+  <ul class="nav-center">
+    <li><a href="#how">Protocol</a></li>
+    <li><a href="#features">Features</a></li>
+    <li><a href="#market">Market</a></li>
+    <li><a href="https://docs.nexbase.io" target="_blank" rel="noopener">Docs</a></li>
+  </ul>
+
+  <div class="nav-right">
+    <!-- Twitter / X -->
+    <a class="nav-icon" href="https://x.com/nexbase" target="_blank" rel="noopener" title="Twitter / X">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+    </a>
+    <!-- GitHub -->
+    <a class="nav-icon" href="https://github.com/Nexbase-hub/Nexbase" target="_blank" rel="noopener" title="GitHub">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.185 6.839 9.509.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.607.069-.607 1.004.07 1.532 1.032 1.532 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.026 2.747-1.026.546 1.378.202 2.397.1 2.65.64.7 1.028 1.595 1.028 2.688 0 3.848-2.338 4.695-4.566 4.944.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.2 22 16.447 22 12.021 22 6.484 17.523 2 12 2z"/>
+      </svg>
+    </a>
+    <a href="#cta" class="btn-launch">Launch App</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow"><span class="live-dot"></span>Live on Base Mainnet</div>
+  <h1>The Next Generation<br>DeFi Protocol on <span class="text-purple">Base</span></h1>
+  <p class="hero-sub">Trade, stake, and earn on Coinbase's Base Network. Near-zero gas fees, institutional-grade security, and the highest yields in the ecosystem.</p>
+  <div class="hero-actions">
+    <a href="#cta" class="btn-primary">Get Early Access</a>
+    <a href="#how" class="btn-outline">Learn More</a>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker" id="ticker"></div>
+</div>
+
+<!-- STATS -->
+<div class="stats-wrap">
+  <div class="stats">
+    <div class="stat reveal">
+      <div class="stat-label">Total Value Locked</div>
+      <div class="stat-num">$4.7B</div>
+      <div class="stat-change">+23.4% this month</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-label">Active Traders</div>
+      <div class="stat-num">318K</div>
+      <div class="stat-change">+8.1% this week</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-label">Total Transactions</div>
+      <div class="stat-num">12.9M</div>
+      <div class="stat-change">All time high</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-label">Average Staking APY</div>
+      <div class="stat-num">38%</div>
+      <div class="stat-change">Best in market</div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section id="how">
+  <div class="section-inner">
+    <p class="section-tag reveal">Protocol</p>
+    <h2 class="section-h2 reveal">How NEXBASE works</h2>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-n">STEP 01 — CONNECT</div>
+        <h3>Connect Your Wallet</h3>
+        <p>Supports MetaMask, WalletConnect, Coinbase Wallet, and 40+ others. Connect in seconds with no signup required.</p>
+      </div>
+      <div class="step">
+        <div class="step-n">STEP 02 — TRADE</div>
+        <h3>Swap Any Token</h3>
+        <p>Swap 500+ tokens with minimal slippage. Smart routing finds the most efficient path across all liquidity sources automatically.</p>
+      </div>
+      <div class="step">
+        <div class="step-n">STEP 03 — EARN</div>
+        <h3>Maximize Yield</h3>
+        <p>Provide liquidity or stake NBX tokens to earn passive rewards up to 38% APY. Compounding handled automatically.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <p class="section-tag reveal">Features</p>
+    <h2 class="section-h2 reveal">Built different,<br>built on Base</h2>
+    <div class="feat-grid reveal">
+
+      <div class="feat-card span-8">
+        <span class="feat-label">Security</span>
+        <h3>Institutional-Grade Protection</h3>
+        <p>Smart contracts audited by CertiK and Trail of Bits. Multi-signature treasury, real-time threat monitoring, and a $50M insurance fund to protect your assets from exploits and unexpected events.</p>
+        <span class="feat-badge">AUDITED</span>
+        <span class="feat-badge">INSURED</span>
+      </div>
+
+      <div class="feat-card span-4">
+        <span class="feat-label">Infrastructure</span>
+        <h3>Powered by Base L2</h3>
+        <p>Built natively on Coinbase's Base Network. Sub-second finality with gas fees averaging $0.001 per transaction.</p>
+        <span class="feat-badge">BASE NATIVE</span>
+      </div>
+
+      <div class="feat-card span-4">
+        <span class="feat-label">Interoperability</span>
+        <h3>Cross-Chain Bridge</h3>
+        <p>Bridge assets across 12 blockchains including ETH, BSC, SOL, and AVAX from one unified interface.</p>
+        <span class="feat-badge">MULTI-CHAIN</span>
+      </div>
+
+      <div class="feat-card span-4">
+        <span class="feat-label">Intelligence</span>
+        <h3>AI Trading Signals</h3>
+        <p>On-chain data analysis, whale movement tracking, and live market sentiment — surfaced in real time.</p>
+        <span class="feat-badge">AI-POWERED</span>
+      </div>
+
+      <div class="feat-card span-4">
+        <span class="feat-label">Analytics</span>
+        <h3>Pro Dashboard</h3>
+        <p>Advanced charting, portfolio tracking, and profit/loss reporting all in one place.</p>
+        <span class="feat-badge">REAL-TIME</span>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- MARKET -->
+<section id="market">
+  <div class="section-inner">
+    <p class="section-tag reveal">Market</p>
+    <h2 class="section-h2 reveal">Live price feed</h2>
+    <div class="chart-wrap reveal">
+      <div class="chart-top">
+        <div>
+          <div class="chart-pair" id="chartPair">ETH / USDT</div>
+          <div>
+            <span class="chart-price" id="livePrice">—</span>
+            <span class="chart-chg" id="liveChg"></span>
+          </div>
+        </div>
+        <div class="chart-tabs">
+          <button class="tab active" onclick="setTab(this,'1m',60)">1H</button>
+          <button class="tab" onclick="setTab(this,'15m',96)">1D</button>
+          <button class="tab" onclick="setTab(this,'4h',42)">1W</button>
+          <button class="tab" onclick="setTab(this,'1d',30)">1M</button>
+        </div>
+      </div>
+      <canvas id="chart"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="cta">
+  <div class="section-inner">
+    <div class="cta-box reveal">
+      <h2>Join the <span class="text-purple">early access</span> waitlist</h2>
+      <p>Sign up now and receive 500 NBX tokens plus zero trading fees for your first 30 days.</p>
+      <div class="email-row">
+        <input class="email-inp" type="email" id="emailInp" placeholder="Your email address">
+        <button class="btn-submit" onclick="submitEmail()">Get Access</button>
+      </div>
+      <p class="success-msg" id="successMsg">You are on the waitlist. Check your inbox.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">NEXBASE</div>
+  <div class="footer-links">
+    <a href="https://docs.nexbase.io" target="_blank">Docs</a>
+    <a href="#">Whitepaper</a>
+    <a href="https://x.com/nexbase" target="_blank">Twitter</a>
+    <a href="https://github.com/Nexbase-hub/Nexbase" target="_blank">GitHub</a>
+    <a href="#">Audit</a>
+  </div>
+  <div class="footer-copy">2026 NEXBASE. Built on Base.</div>
+</footer>
+
+<script>
+// ── PRICE DATA ──
+const SYMS = {
+  BTC:'bitcoin',ETH:'ethereum',SOL:'solana',
+  BNB:'binancecoin',AVAX:'avalanche-2',ARB:'arbitrum'
+};
+const NBX = {sym:'NBX',val:'$2.847',chg:'12.4',up:true};
+let priceCache = {};
+
+function fmt(n){
+  n=parseFloat(n);
+  if(n>=1000) return '$'+n.toLocaleString('en-US',{maximumFractionDigits:0});
+  if(n>=1)    return '$'+n.toFixed(2);
+  return '$'+n.toFixed(4);
+}
+
+function buildTicker(coins){
+  const all=[NBX,...coins,NBX,...coins];
+  document.getElementById('ticker').innerHTML=all.map((c,i)=>
+    (i>0?'<div class="t-div"></div>':'')+
+    `<div class="ticker-item"><span class="t-sym">${c.sym}</span><span class="t-val">${c.val}</span><span class="${c.up?'t-up':'t-dn'}">${c.up?'+':''}${c.chg}%</span></div>`
+  ).join('');
+}
+
+function applyFallback(){
+  buildTicker([
+    {sym:'BTC',val:'$98,420',chg:'1.8',up:true},
+    {sym:'ETH',val:'$3,521',chg:'2.4',up:true},
+    {sym:'SOL',val:'$172',chg:'0.9',up:false},
+    {sym:'BNB',val:'$612',chg:'1.1',up:true},
+    {sym:'AVAX',val:'$38',chg:'0.6',up:false},
+    {sym:'ARB',val:'$1.09',chg:'3.2',up:true},
+  ]);
+  document.getElementById('livePrice').textContent='$3,521';
+  const c=document.getElementById('liveChg');
+  c.textContent='+2.4%'; c.style.color='#86efac';
+}
+
+// Use WebSocket Binance stream — bypasses CORS entirely
+const streams = ['btcusdt','ethusdt','solusdt','bnbusdt','avaxusdt','arbusdt']
+  .map(s=>s+'@ticker').join('/');
+let ws;
+
+function connectWS(){
+  ws = new WebSocket('wss://stream.binance.com:9443/stream?streams='+streams);
+  ws.onmessage = e => {
+    const {data:d} = JSON.parse(e.data);
+    const sym = d.s.replace('USDT','');
+    const price = parseFloat(d.c);
+    const chg = parseFloat(d.P);
+    priceCache[sym] = {val:fmt(price), chg:Math.abs(chg).toFixed(2), up:chg>=0};
+
+    // update ticker
+    const coins = ['BTC','ETH','SOL','BNB','AVAX','ARB']
+      .filter(s=>priceCache[s])
+      .map(s=>({sym:s,...priceCache[s]}));
+    if(coins.length) buildTicker(coins);
+
+    // update chart header with ETH
+    if(sym==='ETH'){
+      document.getElementById('livePrice').textContent = fmt(price);
+      const el = document.getElementById('liveChg');
+      el.textContent = (chg>=0?'+':'')+chg.toFixed(2)+'%';
+      el.style.color = chg>=0?'#86efac':'#f87171';
+    }
+  };
+  ws.onerror = () => applyFallback();
+  ws.onclose = () => setTimeout(connectWS, 3000); // auto reconnect
+}
+
+connectWS();
+
+// CHART — use Binance REST for history, WebSocket already handled above
+const cvs=document.getElementById('chart');
+const cx=cvs.getContext('2d');
+function resizeCvs(){
+  cvs.width=cvs.offsetWidth*devicePixelRatio;
+  cvs.height=180*devicePixelRatio;
+  cx.scale(devicePixelRatio,devicePixelRatio);
+}
+resizeCvs();
+
+let chartData=[];
+
+function drawChart(data){
+  const W=cvs.offsetWidth,H=180;
+  cx.clearRect(0,0,W,H);
+  if(!data.length)return;
+  const mn=Math.min(...data)*0.998,mx=Math.max(...data)*1.002;
+  const y=v=>H-((v-mn)/(mx-mn))*(H-20)-10;
+  const x=i=>(i/(data.length-1))*W;
+  const isUp=data[data.length-1]>=data[0];
+  const col=isUp?'139,92,246':'248,113,113';
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,`rgba(${col},0.22)`);
+  g.addColorStop(1,`rgba(${col},0)`);
+  cx.beginPath();cx.moveTo(x(0),H);
+  data.forEach((v,i)=>cx.lineTo(x(i),y(v)));
+  cx.lineTo(x(data.length-1),H);cx.closePath();
+  cx.fillStyle=g;cx.fill();
+  cx.beginPath();
+  data.forEach((v,i)=>i===0?cx.moveTo(x(i),y(v)):cx.lineTo(x(i),y(v)));
+  cx.strokeStyle=`rgba(${col},0.9)`;cx.lineWidth=1.8;cx.lineJoin='round';cx.stroke();
+  const lx=x(data.length-1),ly=y(data[data.length-1]);
+  cx.beginPath();cx.arc(lx,ly,4,0,Math.PI*2);cx.fillStyle=`rgba(${col},1)`;cx.fill();
+}
+
+async function fetchChart(interval,limit){
+  try{
+    const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=ETHUSDT&interval=${interval}&limit=${limit}`);
+    if(!r.ok)throw new Error();
+    const json=await r.json();
+    chartData=json.map(k=>parseFloat(k[4]));
+    drawChart(chartData);
+  }catch(e){
+    // generate smooth fake chart as fallback
+    let v=3500; chartData=[];
+    for(let i=0;i<limit;i++){v+=(Math.random()-0.48)*18;v=Math.max(3200,Math.min(3900,v));chartData.push(v);}
+    drawChart(chartData);
+  }
+}
+
+fetchChart('1m',60);
+
+function setTab(btn,interval,limit){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  fetchChart(interval,limit);
+}
+
+window.addEventListener('resize',()=>{resizeCvs();drawChart(chartData);});
+
+// REVEAL
+document.querySelectorAll('.reveal').forEach(el=>{
+  new IntersectionObserver(entries=>{
+    entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible');});
+  },{threshold:0.1}).observe(el);
+});
+
+// EMAIL
+function submitEmail(){
+  const v=document.getElementById('emailInp').value;
+  if(!v.includes('@')){alert('Please enter a valid email.');return;}
+  document.getElementById('successMsg').style.display='block';
+  document.getElementById('emailInp').value='';
+}
+</script>
+</body>
+</html>
